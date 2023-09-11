@@ -46,7 +46,9 @@ enum ErrList {
 	//INVITE error
 	ERR_USERONCHANNEL,
 	ERR_CHANOPRIVSNEEDED,
-	INVALID_COMMAND
+	ERR_INVLD_CMMND,
+	ERR_INLVLD_PARAMS
+
 };
 
 std::unordered_map<ErrList, const char*> ErrMap = {
@@ -82,7 +84,8 @@ std::unordered_map<ErrList, const char*> ErrMap = {
 	{RPL_LISTEND, "List end"},
 	{ERR_NOSUCHNICK, "No such nickname"},
 	{ERR_USERONCHANNEL, "User is on channel"},
-	{INVALID_COMMAND, "No such command"}
+	{ERR_INVLD_CMMND, "No such command"},
+	{ERR_INLVLD_PARAMS,"Invalid paramaters"}
 };
 
 class errorparse {

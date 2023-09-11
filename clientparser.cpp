@@ -26,15 +26,17 @@ class ParseMsg {
 	std::string PassParams;
 	std::string NickParams;
 	std::string SQuitParams;
-	std::string tempParam;
-	std::vector<std::string>buffer;
-	std::string tempcheck;
-	std::string buff;
-	std::string com;
-	bool check;
+	std::string tempParam;				 //to hold the parameters prior to parsing
+	std::vector<std::string>buffer;		//to hold parameters as tokens
+	std::string tempcheck;				//for parsing individual token
+	std::string buff;					//for stringstream purposes	
+	std::string com;					//to store the command which user had input
+	std::vector<std::string>::iterator curr_token; 
+	bool check;			
 	int pos;
 
-	ParseMsg(std::string usrmsg) :message(usrmsg), check(false) {
+	ParseMsg(std::string usrmsg) :message(usrmsg), 
+	check(false){
 
 		com = message.substr(0, 1);
 		tempParam = message.substr(9, message.size());
@@ -48,7 +50,7 @@ class ParseMsg {
 		}
 
 		if (!check)
-			ParsError(INVALID_COMMAND);
+			ParsError(ERR_INVLD_COMMND);
 		else
 			assignParams();
 	}
@@ -87,15 +89,54 @@ class ParseMsg {
 	void UserParse() {
 
 		std::stringstream parse(UserParams);
-		
+
 		while (parse >> buff) {
 			buffer.emplace_back(buff);
 		}
 
+		//since user command have this syntax :
+		//USER <username> <hostname> <servername> <realname>
+
 		if (buffer.size() != 4)
 			ParsError(ERR_NEEDMOREPARAMS);
+
+		curr_token = buffer.begin();
+		tempcheck = *curr_token;
+
+		if (!ServerNameRegex(tempcheck))
+			ParsError(ERR_INLVLD_PARAMS);
 		
-	
+		std::advance(curr_token, 1);
+		tempcheck = *curr_token;
+
+		if (!HostNameRegex(tempcheck))
+			ParsError(ERR_INLVLD_PARAMS);
+
+		std::advance(curr_token, 1);
+		tempcheck = *curr_token;
+		
+		w
+	}
+
+	bool ServerNameRegex(std::string ServerParam) {
+		std::smatch smatch;
+
+		std::regex serverPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
+			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+
+		if (std::regex_match(ServerParam, smatch, serverPattern))
+			return true;
+		return false;
+	}
+
+	bool HostNameRegex(std::string ServerParam) {
+		std::smatch smatch;
+
+		std::regex serverPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
+			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+
+		if (std::regex_match(ServerParam, smatch, serverPattern))
+			return true;
 	}
 
 	void ServerParse() {
@@ -140,13 +181,10 @@ class ParseMsg {
 		}
 	}
 
+	
 };
-
 
 int main() {
 
-	ParsError(INVALID_COMMAND);
-	std::cout << "hllo";
-	
 	return 0;
 }
