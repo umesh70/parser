@@ -50,7 +50,7 @@ class ParseMsg {
 		}
 
 		if (!check)
-			ParsError(ERR_INVLD_COMMND);
+			ParsError(ERR_INVLD_CMMND);
 		else
 			assignParams();
 	}
@@ -103,7 +103,7 @@ class ParseMsg {
 		curr_token = buffer.begin();
 		tempcheck = *curr_token;
 
-		if (!ServerNameRegex(tempcheck))
+		if (!UserNameRegex(tempcheck))
 			ParsError(ERR_INLVLD_PARAMS);
 		
 		std::advance(curr_token, 1);
@@ -114,29 +114,65 @@ class ParseMsg {
 
 		std::advance(curr_token, 1);
 		tempcheck = *curr_token;
+
+		if (!ServerNameRegex(tempcheck))
+			ParsError(ERR_INLVLD_PARAMS);
+
+		std::advance(curr_token, 1);
+		tempcheck = *curr_token;
+
+		std::string coloncheck = tempcheck.substr(0, 1);
+		std::string suffixparams = tempcheck.substr(1, tempcheck.size());
 		
-		w
+		if (coloncheck != ":")
+			ParsError(ERR_INLVLD_PARAMS);
+
+		if (!RealNameRegex(suffixparams))
+			ParsError(ERR_INLVLD_PARAMS);
+		
 	}
 
-	bool ServerNameRegex(std::string ServerParam) {
+	bool UserNameRegex(std::string Param) {
 		std::smatch smatch;
 
-		std::regex serverPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
-			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+		std::regex UserPattern("[A-Za-z0-9]+ ");
 
-		if (std::regex_match(ServerParam, smatch, serverPattern))
+		if (std::regex_match(Param, smatch, UserPattern))
 			return true;
 		return false;
 	}
 
-	bool HostNameRegex(std::string ServerParam) {
+	bool ServerNameRegex(std::string Param) {
 		std::smatch smatch;
 
 		std::regex serverPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
 			"+[a-zA-Z][a-zA-Z0-9-]*)$");
 
-		if (std::regex_match(ServerParam, smatch, serverPattern))
+		if (std::regex_match(Param, smatch, serverPattern))
 			return true;
+		return false;
+	}
+
+	bool HostNameRegex(std::string Param) {
+		std::smatch smatch;
+
+		std::regex HostPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
+			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+
+		if (std::regex_match(Param, smatch, HostPattern))
+			return true;
+		return false;
+	}
+
+	bool RealNameRegex(std::string Param) {
+		std::smatch smatch;
+
+		std::regex RealnamePattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
+			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+
+		if (std::regex_match(Param, smatch, RealnamePattern))
+			return true;
+		return false;
 	}
 
 	void ServerParse() {
