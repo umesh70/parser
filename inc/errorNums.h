@@ -1,3 +1,5 @@
+#pragma once
+
 #include<iostream>
 #include<string>
 #include<vector>
@@ -47,7 +49,8 @@ enum ErrList {
 	ERR_USERONCHANNEL,
 	ERR_CHANOPRIVSNEEDED,
 	ERR_INVLD_CMMND,
-	ERR_INLVLD_PARAMS
+	ERR_INVLD_PARAMS,
+	ERR_INVLD_FRMT
 
 };
 
@@ -85,7 +88,8 @@ std::unordered_map<ErrList, const char*> ErrMap = {
 	{ERR_NOSUCHNICK, "No such nickname"},
 	{ERR_USERONCHANNEL, "User is on channel"},
 	{ERR_INVLD_CMMND, "No such command"},
-	{ERR_INLVLD_PARAMS,"Invalid paramaters"}
+	{ERR_INVLD_PARAMS,"Invalid paramaters"},
+	{ERR_INVLD_FRMT,"Invalid message format"}
 };
 
 class errorparse {

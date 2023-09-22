@@ -18,13 +18,16 @@
     <ClCompile Include="parser.h">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="clientparser.cpp">
+    <ClCompile Include="source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\errorNums.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\clientparser.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

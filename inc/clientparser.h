@@ -34,13 +34,15 @@ class ParseMsg {
 	std::vector<std::string>::iterator curr_token; 
 	bool check;			
 	int pos;
+	int hopcount;
 
+public:
 	ParseMsg(std::string usrmsg) :message(usrmsg), 
 	check(false){
+		std::stringstream parse(usrmsg);
 
-		com = message.substr(0, 1);
-		tempParam = message.substr(9, message.size());
-	
+		parse >> com;
+		tempParam = parse.str().substr(com.size() + 1);
 		for (const auto& ComPair : ConCommands) {
 			if (ComPair.first == com) {
 				check = true;
@@ -96,7 +98,7 @@ class ParseMsg {
 
 		//since user command have this syntax :
 		//USER <username> <hostname> <servername> <realname>
-
+		
 		if (buffer.size() != 4)
 			ParsError(ERR_NEEDMOREPARAMS);
 
@@ -104,38 +106,37 @@ class ParseMsg {
 		tempcheck = *curr_token;
 
 		if (!UserNameRegex(tempcheck))
-			ParsError(ERR_INLVLD_PARAMS);
+			ParsError(ERR_INVLD_PARAMS);
 		
 		std::advance(curr_token, 1);
 		tempcheck = *curr_token;
-
+		
 		if (!HostNameRegex(tempcheck))
-			ParsError(ERR_INLVLD_PARAMS);
+			ParsError(ERR_INVLD_PARAMS);
 
 		std::advance(curr_token, 1);
 		tempcheck = *curr_token;
-
 		if (!ServerNameRegex(tempcheck))
-			ParsError(ERR_INLVLD_PARAMS);
+			ParsError(ERR_INVLD_PARAMS);
 
 		std::advance(curr_token, 1);
 		tempcheck = *curr_token;
 
 		std::string coloncheck = tempcheck.substr(0, 1);
 		std::string suffixparams = tempcheck.substr(1, tempcheck.size());
-		
+		std::cout << suffixparams;
 		if (coloncheck != ":")
-			ParsError(ERR_INLVLD_PARAMS);
+			ParsError(ERR_INVLD_PARAMS);
 
 		if (!RealNameRegex(suffixparams))
-			ParsError(ERR_INLVLD_PARAMS);
+			ParsError(ERR_INVLD_PARAMS);
 		
 	}
 
 	bool UserNameRegex(std::string Param) {
 		std::smatch smatch;
 
-		std::regex UserPattern("[A-Za-z0-9]+ ");
+		std::regex UserPattern("[A-Za-z0-9]*");
 
 		if (std::regex_match(Param, smatch, UserPattern))
 			return true;
@@ -145,8 +146,7 @@ class ParseMsg {
 	bool ServerNameRegex(std::string Param) {
 		std::smatch smatch;
 
-		std::regex serverPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
-			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+		std::regex serverPattern("^(?!irc\\.)((([[:alnum:]-]+)(\\.([[:alnum:]-]+))*)|((\\d{1,3}\\.){3}\\d{1,3})|((\\[?([a-fA-F0-9]{0,4}:){1,7}[a-fA-F0-9]{0,4}\\]?)(:\\d+)?))$");
 
 		if (std::regex_match(Param, smatch, serverPattern))
 			return true;
@@ -156,8 +156,7 @@ class ParseMsg {
 	bool HostNameRegex(std::string Param) {
 		std::smatch smatch;
 
-		std::regex HostPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
-			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+		std::regex HostPattern("^(?!www\.|ftp\.)((([[:alnum:]-]+)\.)+[[:alnum:]-]{1,255})$");
 
 		if (std::regex_match(Param, smatch, HostPattern))
 			return true;
@@ -167,28 +166,34 @@ class ParseMsg {
 	bool RealNameRegex(std::string Param) {
 		std::smatch smatch;
 
-		std::regex RealnamePattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
-			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+		std::regex RealnamePattern("^([^\\r\\n\\0]*)$");
 
 		if (std::regex_match(Param, smatch, RealnamePattern))
 			return true;
 		return false;
 	}
 
-	void ServerParse() {
-
-		std::stringstream parse(ServerParams);
-		while (parse >> buff) {
-			buffer.emplace_back(buff);
-		}
-	}
-
-	void QuitParse() {
+	bool QuitParse() {
 
 		std::stringstream parse(QuitParams);
 		while (parse >> buff) {
 			buffer.emplace_back(buff);
 		}
+		if (buffer.size() != 1)
+			ParsError(ERR_INVLD_PARAMS);
+		else
+			curr_token = buffer.begin();
+			tempcheck = *curr_token;
+			std::string coloncheck = tempcheck.substr(0, 1);
+			std::string msg = tempcheck.substr(1, tempcheck.size());
+			if (coloncheck != ":")
+				ParsError(ERR_INVLD_FRMT);
+			std::smatch match;
+			std::regex msgPattern(":(.+)");
+			if (std::regex_match(tempcheck, match, msgPattern))
+				return true;
+			return false;
+
 
 	}
 
@@ -209,18 +214,42 @@ class ParseMsg {
 		
 	}
 	
-	void NickPArse() {
+	bool NickPArse() {
 
 		std::stringstream parse(NickParams);
+
 		while (parse >> buff) {
 			buffer.emplace_back(buff);
 		}
+
+		if (buffer.size() != 1)
+			ParsError(ERR_INVLD_PARAMS);
+
+		curr_token = buffer.begin();
+		tempcheck = *curr_token;
+		std::smatch match;
+		std::regex nickPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
+			"+[a-zA-Z][a-zA-Z0-9-]*)$");
+		if (std::regex_match(tempcheck, match, nickPattern))
+			return true;
+		return false;
+	}
+
+
+	void ServerParse() {
+
+		std::stringstream parse(ServerParams);
+		while (parse >> buff) {
+			buffer.emplace_back(buff);
+		}
+		if (buffer.size() != 3)
+			ParsError(ERR_INVLD_PARAMS);
+
+		curr_token = buffer.begin();
+		tempcheck = *curr_token;
+		std::string coloncheck = tempcheck;
+
 	}
 
 	
 };
-
-int main() {
-
-	return 0;
-}
