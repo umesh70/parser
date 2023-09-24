@@ -130,6 +130,7 @@ public:
 
 		if (!RealNameRegex(suffixparams))
 			ParsError(ERR_INVLD_PARAMS);
+
 		
 	}
 
