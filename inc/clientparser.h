@@ -37,8 +37,9 @@ class ParseMsg {
 	int hopcount;
 
 public:
-	ParseMsg(std::string usrmsg) :message(usrmsg), 
-	check(false){
+	void Parse(std::string usrmsg){
+		message = usrmsg;
+		check = false;
 		std::stringstream parse(usrmsg);
 
 		parse >> com;
@@ -131,7 +132,7 @@ public:
 		if (!RealNameRegex(suffixparams))
 			ParsError(ERR_INVLD_PARAMS);
 
-		
+		std::cout <<std::endl<< "command is ok";
 	}
 
 	bool UserNameRegex(std::string Param) {
