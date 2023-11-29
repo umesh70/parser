@@ -14,6 +14,8 @@
 #define THREAD_NUM 5
 #define MaxDataSize 4096
 
+std::vector<std::pair<std::string,std::pair<std::string,int>>>USER_FD;
+
 struct thread_data {
 	
 	struct sockaddr_storage th_their_addr;
@@ -37,7 +39,8 @@ class SERVER : public ParseMsg{
 	char address[INET6_ADDRSTRLEN];
 	int check_addrinfo;
 	int yes = 1;
-	HANDLE cthread;
+	HANDLE cthread[THREAD_NUM];
+	HANDLE ghMutex;
 
 
 public:
@@ -59,6 +62,14 @@ public:
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_flags = AI_PASSIVE;
+
+		ghMutex = CreateMutex(NULL, FALSE, NULL);
+		if (ghMutex == NULL) {
+			printf("CreateMutex error:%d\n", GetLastError());
+			exit(1);
+		}
+
+
 	}
 
 	void setup_socket() {
@@ -69,7 +80,7 @@ public:
 		}
 		//to get the available address
 		for (p = server_info; p != NULL; p = p->ai_next) {
-			std::cout << p<<std::endl;
+			std::cout <<"Avaialble address:"<< p << std::endl;
 			if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
 				perror("server: socket");
 				return;
@@ -120,37 +131,30 @@ public:
 				data_array[connections_num].th_their_addr = their_addr;
 				data_array[connections_num].con_num = connections_num;
 				
+
 				//datarray->newfd = con_fd[connections_num];
-				 cthread = CreateThread(NULL, 0, threadfunction, 
+				 cthread[connections_num] = CreateThread(NULL, 0, threadfunction,
 								(LPVOID*)data_array, 0, NULL);
 
 				if (cthread == NULL)
 					perror("create thread");
-				else
-					connections_num++; 
+				connections_num++; 
+
 			}
+	
 		}
+		WaitForMultipleObjects(connections_num, cthread, TRUE, INFINITE);
+		for (int i = 0; i < THREAD_NUM; i++)
+			CloseHandle(cthread[i]);
+
+		CloseHandle(ghMutex);
+
+		exit(10);
+		
 	}
 
-	
-
-	/*DWORD threadfunction(LPVOID thparameters) {
-		
-		inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr*)&their_addr),address , sizeof address);
-		printf("server got connection from : %s\n", address);
-		printf("recieving data...");
-		int fd = (int)thparameters;
-		if (check_recv = recv(fd, data, MaxDataSize - 1, 0) == -1)
-			perror("recv");
-		data[check_recv] = '\0';
-		printf("command recieved ");
-		// now to parse the user command
-		std::string command = data;
-		Parse(command);
-		
-	}*/
-
 	static DWORD WINAPI threadfunction(LPVOID thparameters) {
+		
 		ParseMsg obj;
 		struct sockaddr_storage th_addr;
 		char address[INET6_ADDRSTRLEN];
@@ -158,20 +162,56 @@ public:
 		int check_recv;
 		int fd;
 		int con_num;
-
+		char check= NULL;
 		thread_data* thdata = reinterpret_cast<thread_data*>(thparameters);
-		
+		//std::string curr_cmd = NULL;
 		th_addr = thdata->th_their_addr;
 		fd = thdata->fd;
 		con_num = thdata->con_num;
+
 		inet_ntop(th_addr.ss_family, get_in_addr((struct sockaddr*)&th_addr), address, sizeof address); 
 		printf("server got connection from : %s\n", address);
-		printf("recieving data...");
-		if ((check_recv = recv(fd, data, MaxDataSize - 1, 0)) == -1)
+		
+		std::string cmd = ("N for new User,  E for existing use\n>>");
+		const char* sendata = cmd.c_str();
+		if (send(fd, sendata, cmd.size(), 0) == -1)
+			perror("send");
+		if ((check_recv = recv(fd,data, MaxDataSize - 1, 0)) == -1)
 			perror("recv");
 		data[check_recv] = '\0';
-		printf("command recieved");
-		obj.Parse(data);
+		std::cout <<"user type: "<< data << std::endl;
+		cmd = {};
+
+		if (data[check_recv-1] == 'n' || data[check_recv-1] == 'N') {
+			cmd = "Register yourself with USER command\n>>";
+			sendata = cmd.c_str();
+			if (send(fd, sendata, cmd.size(), 0) == -1)
+				perror("send");
+			
+			if ((check_recv = recv(fd, data, MaxDataSize - 1, 0)) == -1)
+				perror("recv");
+			data[check_recv] = '\0';
+			std::cout << "command recieved: " << data<<std::endl;
+
+			obj.Parse(data);
+			cmd = "Register your nickname with NICK command\n>>";
+			sendata = cmd.c_str();
+			if (send(fd, sendata, cmd.size(), 0) == -1)
+				perror("send");
+
+			if ((check_recv = recv(fd, data, MaxDataSize - 1, 0)) == -1)
+				perror("recv");
+			data[check_recv] = '\0';
+			std::cout << "command recieved: " << data << std::endl;
+			obj.Parse(data);
+			auto user_data = obj.FetchUSer();
+			USER_FD.push_back({user_data[0],{user_data[1],fd}});
+			std::cout << std::endl << "user registration succesfull." << std::endl;
+			std::cout << "Username: " << USER_FD[0].first << std::endl;
+			std::cout << "Nickname: " << USER_FD[0].second.first << std::endl;
+			std::cout << "with FD: " << USER_FD[0].second.second;
+			
+		}
 		
 		exit(1);
 
@@ -194,3 +234,4 @@ int main() {
 	obj.setup_socket();
 	obj.accept_connection();
 }
+ 

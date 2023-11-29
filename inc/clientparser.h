@@ -18,7 +18,6 @@ class ParseMsg {
 		{"PASS",5 },
 		{"NICK",6 }
 	};
-
 	std::string message;
 	std::string UserParams;
 	std::string ServerParams;
@@ -27,14 +26,18 @@ class ParseMsg {
 	std::string NickParams;
 	std::string SQuitParams;
 	std::string tempParam;				 //to hold the parameters prior to parsing
+	std::string username;
+	std::string nickname;
 	std::vector<std::string>buffer;		//to hold parameters as tokens
 	std::string tempcheck;				//for parsing individual token
 	std::string buff;					//for stringstream purposes	
 	std::string com;					//to store the command which user had input
-	std::vector<std::string>::iterator curr_token; 
+	std::vector<std::string>::iterator curr_token;
+	std::vector<std::string>user_details;
 	bool check;			
 	int pos;
 	int hopcount;
+
 
 public:
 	void Parse(std::string usrmsg){
@@ -108,7 +111,8 @@ public:
 
 		if (!UserNameRegex(tempcheck))
 			ParsError(ERR_INVLD_PARAMS);
-		
+
+		user_details.push_back(tempcheck);
 		std::advance(curr_token, 1);
 		tempcheck = *curr_token;
 		
@@ -125,14 +129,13 @@ public:
 
 		std::string coloncheck = tempcheck.substr(0, 1);
 		std::string suffixparams = tempcheck.substr(1, tempcheck.size());
-		std::cout << suffixparams;
 		if (coloncheck != ":")
 			ParsError(ERR_INVLD_PARAMS);
 
 		if (!RealNameRegex(suffixparams))
 			ParsError(ERR_INVLD_PARAMS);
 
-		std::cout <<std::endl<< "command is ok";
+		std::cout <<std::endl<< "command is ok"<<std::endl;
 	}
 
 	bool UserNameRegex(std::string Param) {
@@ -219,16 +222,18 @@ public:
 	bool NickPArse() {
 
 		std::stringstream parse(NickParams);
-
+		buffer = {};
 		while (parse >> buff) {
+			
 			buffer.emplace_back(buff);
 		}
-
 		if (buffer.size() != 1)
 			ParsError(ERR_INVLD_PARAMS);
 
 		curr_token = buffer.begin();
 		tempcheck = *curr_token;
+		user_details.push_back(tempcheck);
+		
 		std::smatch match;
 		std::regex nickPattern("^((([a-zA-Z][a-zA-Z0-9-]*)+\\.)"
 			"+[a-zA-Z][a-zA-Z0-9-]*)$");
@@ -253,5 +258,7 @@ public:
 
 	}
 
-	
+	auto FetchUSer() {
+		return user_details;
+	}
 };
